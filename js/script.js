@@ -14,6 +14,7 @@ var insertHtml = function (selector, html) {
   var targetElem = document.querySelector(selector);
   targetElem.innerHTML = html;
 };
+dc.insertHtml = insertHtml; // Expose to global
 
 // Show loading icon inside element identified by 'selector'.
 var showLoading = function (selector) {
@@ -45,35 +46,16 @@ var switchMenuToActive = function () {
   }
 };
 
-// On page load (before images or CSS)
-document.addEventListener("DOMContentLoaded", function (event) {
-  
-// TODO: STEP 0: Look over the code from 
-// *** start ***
-// to 
-// *** finish ***
-// below.
-// We changed this code to retrieve all categories from the server right
-// after the page is loaded. We then build a single massive page of
-// all the menu categories, but we only show it if the user clicks on the
-// specials button. Make sure you scroll down to see the code that 
-// has been added / changed. 
-
-// ************** START **************
-var categoriesUrl = "https://coursera-jhu-default-rtdb.firebaseio.com/categories.json";
-var categories = [];
-$ajaxUtils.sendGetRequest(categoriesUrl, function (data) {
-  categories = data;
-});
-// ************** FINISH **************
-
-});
-
-// Load the home snippet view 
+// Load home snippet
 dc.loadHomeSnippet = function (callback) {
   $ajaxUtils.sendGetRequest(homeHtml, function (responseText) {
     callback(responseText);
   }, false);
+};
+
+// Load categories from server
+dc.loadCategories = function (callback) {
+  $ajaxUtils.sendGetRequest(allCategoriesUrl, callback);
 };
 
 // Load the menu categories view
@@ -176,6 +158,34 @@ function buildMenuItemsViewHtml(categoryMenuItems, menuItemsTitleHtml, menuItemH
 
   finalHtml += "</section>";
   return finalHtml;
+}
+
+// On page load (before images or CSS)
+document.addEventListener("DOMContentLoaded", function (event) {
+  // Load home view by default
+  loadHome();
+});
+
+function loadHome() {
+  // STEP 0: Create a variable to hold the categories
+  var categories = [];
+
+  // STEP 1: Call $dc.loadCategories with a callback
+  $dc.loadCategories(function(data) {
+    categories = data;
+
+    // STEP 2: Randomly select a category short_name from categories
+    var randomIndex = Math.floor(Math.random() * categories.length);
+    var randomCategoryShortName = categories[randomIndex].short_name;
+
+    // STEP 3: Load the home snippet and replace the placeholder
+    $dc.loadHomeSnippet(function(homeHtml) {
+      var finalHtml = homeHtml.replace('{{randomCategoryShortName}}', randomCategoryShortName);
+
+      // STEP 4: Insert the modified HTML
+      $dc.insertHtml("#main-content", finalHtml);
+    });
+  });
 }
 
 global.$dc = dc;
